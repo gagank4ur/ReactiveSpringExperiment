@@ -28,6 +28,8 @@ dependencies {
     runtimeOnly("io.r2dbc:r2dbc-h2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
+    testImplementation("com.squareup.okhttp3:okhttp:4.9.3")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.9.3")
 }
 
 tasks.withType<KotlinCompile> {

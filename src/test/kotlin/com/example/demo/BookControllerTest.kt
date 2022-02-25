@@ -1,5 +1,6 @@
 package com.example.demo
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
@@ -8,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.test.web.reactive.server.expectBodyList
 import reactor.core.publisher.Mono
 import java.time.LocalDate
@@ -54,8 +56,8 @@ internal class BookControllerTest {
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
-            .expectBodyList<BookResponse>().hasSize(1)
-            .contains( BookResponse(
+            .expectBodyList<BookWithDetails>().hasSize(1)
+            .contains( BookWithDetails(
                 isbn = "9780756404734",
                 title = "The Wise Man's Fear",
                 authors = listOf("Patrick Rothfuss"),
@@ -78,8 +80,8 @@ internal class BookControllerTest {
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
-            .expectBodyList<BookResponse>().hasSize(1)
-            .contains( BookResponse(
+            .expectBodyList<BookWithDetails>().hasSize(1)
+            .contains( BookWithDetails(
                 isbn = "9780756404734",
                 title = "The Wise Man's Fear",
                 authors = listOf("Patrick Rothfuss"),
@@ -91,5 +93,37 @@ internal class BookControllerTest {
                 numberOfPages = null,
                 publishDate = null
             ))
+    }
+
+    @Test
+    internal fun getsReadBooksWithPages() {
+        Mockito.`when`(openLibraryClient.getDetails("9780756404734")).thenReturn(
+            Mono.just(BookDetails(
+                "The Wise Man's Fear",
+                listOf("Daw Books"),
+                994,
+                "2011-03"
+            )))
+
+        val returnResult = webClient.get().uri("/books/readWithPages")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<BookResponse>().returnResult()
+
+        assertThat(returnResult.responseBody!!.totalPages).isEqualTo(994)
+        assertThat(returnResult.responseBody!!.books).contains(BookWithDetails(
+            isbn = "9780756404734",
+            title = "The Wise Man's Fear",
+            authors = listOf("Patrick Rothfuss"),
+            read = true,
+            owned = false,
+            dateRead = LocalDate.of(2016, 5,4),
+            starRating = 5.0,
+            publishers = listOf("Daw Books"),
+            numberOfPages = 994,
+            publishDate = "2011-03"
+        ))
+
     }
 }

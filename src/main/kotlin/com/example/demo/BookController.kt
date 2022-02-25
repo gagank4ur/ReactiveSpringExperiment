@@ -9,7 +9,8 @@ import reactor.core.scheduler.Schedulers
 @RestController
 class BookController(
     val bookRepository: BookRepository,
-    val openLibraryClient: OpenLibraryClient
+    val openLibraryClient: OpenLibraryClient,
+    val totalsService: TotalsService,
 ) {
 
     @GetMapping("/books")
@@ -18,22 +19,30 @@ class BookController(
     }
 
     @GetMapping("/books/read")
-    fun getReadBooks(): Flux<BookResponse> {
+    fun getReadBooks(): Flux<BookWithDetails> {
         return bookRepository.findBooksByRead(true).flatMap { book ->
             getDetails(book)
         }
     }
 
+    @GetMapping("/books/readWithPages")
+    fun getReadBooksWithPages(): Mono<BookResponse> {
+        val books: Flux<BookWithDetails> = bookRepository.findBooksByRead(true).flatMap { book ->
+            getDetails(book)
+        }
+        return totalsService.calculateTotals(books)
+    }
+
     @GetMapping("/books/read/parallel")
-    fun getReadBooksParallel(): Flux<BookResponse> {
+    fun getReadBooksParallel(): Flux<BookWithDetails> {
         return bookRepository.findBooksByRead(true).parallel().runOn(Schedulers.boundedElastic()).flatMap { book ->
             getDetails(book)
         }.sequential()
     }
 
-    private fun getDetails(book: Book): Mono<BookResponse> {
+    private fun getDetails(book: Book): Mono<BookWithDetails> {
         return openLibraryClient.getDetails(book.isbn).map {
-            BookResponse(
+            BookWithDetails(
                 isbn = book.isbn,
                 title = book.title,
                 authors = book.authors.split(",").map { it.trim() },
@@ -47,7 +56,7 @@ class BookController(
             )
         }.switchIfEmpty(
             Mono.just(
-                BookResponse(
+                BookWithDetails(
                     isbn = book.isbn,
                     title = book.title,
                     authors = book.authors.split(",").map { it.trim() },

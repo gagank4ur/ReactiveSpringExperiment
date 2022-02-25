@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
+import reactor.core.publisher.Mono
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -22,6 +22,7 @@ internal class ImportServiceTest {
     @BeforeEach
     internal fun setUp() {
         importService = ImportService(bookRepository)
+        `when`(bookRepository.save(any())).thenReturn(Mono.empty())
     }
 
     @Test
